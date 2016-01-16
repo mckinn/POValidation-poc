@@ -1,0 +1,15 @@
+{
+  "name": "POValidation-poc",
+  "version": "1.0.0",
+  "description": "a Port Out Validation responder",
+  "main": "POVServer.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "S.McKinnon",
+  "license": "ISC",
+  "dependencies": {
+    "moment": "^2.11.1",
+    "xml2js": "^0.4.16"
+  }
+}
