@@ -1,9 +1,7 @@
 const http = require('http');
 var parseString = require('xml2js').parseString;
-var xml2js = require('xml2js');
-var builder = new require('xml2js').Builder();
 var outfile = require('fs');
-var outstream = outfile.createWriteStream('portoutRequestLog.csv');
+var outstream = outfile.createWriteStream('data/portoutRequestLog.csv');
 var moment = require('moment');
 
 /* 
@@ -12,16 +10,40 @@ var moment = require('moment');
 
 var count = 1;
 
-console.log(`This process is pid ${process.pid}`);
-
 process.stdin.resume();
 
-process.on('SIGINT', () => {
+process.on('SIGINT', function() {
   console.log('Closing file');
   outstream.end();
-  process.exit(1);
+  process.exit(0);
 });
 
+var extractPovRequest = function(count,payload) {
+	var summary = 'x';
+	if (payload) {
+		// for use in the response
+		var PON = payload.PON || "invalid PON";
+		summary = count + "," +
+			PON + "," +
+			(payload.Pin ||"missing Pin ") +  "," +
+			(payload.AccountNumber ||"missing AccountNumber ") + "," +
+			(payload.ZipCode ||"missing ZipCode ") + "," +
+			(payload.SubscriberName ||"missing SubscriberName") + "," +
+			moment().format();
+		var phonenumbers = payload.TelephoneNumbers[0].TelephoneNumber;
+		// console.log("telephone number = " + JSON.stringify(phonenumbers));
+		// console.log("array: "+Object.prototype.toString.apply(phonenumbers));
+		for ( telno = 0; telno < phonenumbers.length; telno += 1) {
+			// console.log(phonenumbers[telno]);
+			summary = summary + ", " + (phonenumbers[telno] || "no telno");
+		}
+	}
+	return summary;
+};
+
+// var is_array = function (value) {
+// 	return Object.prototype.toString.apply(value) === '[object Array]';
+// };
 
 http.createServer( function (request, response) {
 
@@ -36,20 +58,11 @@ http.createServer( function (request, response) {
 		// response.write(request.method + ' ' + count + '\n' );
 		if (body != '') {
 			parseString(body,function(err,result) {
-				// var builder = new xml2js.Builder();
-				// var xml = builder.buildObject(result);
-				// console.log(xml);
-				// console.log(JSON.stringify(result));
 				if (result.PortOutValidationRequest) {
 					// for use in the response
+					// console.log(JSON.stringify(result));
 					var PON = result.PortOutValidationRequest.PON || "invalid PON";
-					var summary = count + "," +
-						PON + "," +
-						(result.PortOutValidationRequest.Pin ||"missing Pin ") +  "," +
-						(result.PortOutValidationRequest.AccountNumber ||"missing AccountNumber ") + "," +
-						(result.PortOutValidationRequest.ZipCode ||"missing ZipCode ") + "," +
-						(result.PortOutValidationRequest.SubscriberName ||"missing SubscriberName") + "," +
-						moment().format();
+					var summary = extractPovRequest(count, result.PortOutValidationRequest);
 					console.log(summary);
 					outstream.write(summary + '\n');
 				}
