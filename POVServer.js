@@ -52,30 +52,6 @@ process.on('SIGINT', function() {
   process.exit(0);
 });
 
-/*
-var extractPovRequest = function(count,payload) {
-	var summary = 'x';
-	if (payload) {
-		// for use in the response
-		var PON = payload.PON || "invalid PON";
-		summary = count + "," +
-			PON + "," +
-			(payload.Pin ||"missing Pin ") +  "," +
-			(payload.AccountNumber ||"missing AccountNumber ") + "," +
-			(payload.ZipCode ||"missing ZipCode ") + "," +
-			(payload.SubscriberName ||"missing SubscriberName") + "," +
-			moment().format();
-		var phonenumbers = payload.TelephoneNumbers[0].TelephoneNumber;
-		// console.log("telephone number = " + JSON.stringify(phonenumbers));
-		// console.log("array: "+Object.prototype.toString.apply(phonenumbers));
-		for ( telno = 0; telno < phonenumbers.length; telno += 1) {
-			// console.log(phonenumbers[telno]);
-			summary = summary + ", " + (phonenumbers[telno] || "no telno");
-		}
-	}
-	return summary;
-};
-*/
 
 var extractPovRequest = function(count,payload) {
 	var summary = 'x';
@@ -92,28 +68,43 @@ var extractPovRequest = function(count,payload) {
 		});
 		summary = count + "," +
 			PON + "," +
-			(payload.Pin ||"missing Pin ") +  "," +
-			(payload.AccountNumber ||"missing AccountNumber ") + "," +
-			(payload.ZipCode ||"missing ZipCode ") + "," +
-			(payload.SubscriberName ||"missing SubscriberName") + "," +
+			savethis.pin +  "," +
+			savethis.accountno + "," +
+			savethis.zip + "," +
+			savethis.subname + "," +
 			moment().format();
 		var phonenumbers = payload.TelephoneNumbers[0].TelephoneNumber;
-		// console.log("telephone number = " + JSON.stringify(phonenumbers));
-		// console.log("array: "+Object.prototype.toString.apply(phonenumbers));
+
 		for ( telno = 0; telno < phonenumbers.length; telno += 1) {
 			// console.log(phonenumbers[telno]);
 			summary = summary + ", " + (phonenumbers[telno] || "no telno");
 			savethis.telephones.push((phonenumbers[telno] || "no telno"));
 		}
-		savethis.save(function(err) {
-		  if (err) throw err;
-		  console.log('POV saved successfully!');
-		  console.log(JSON.stringify(savethis));
+
+		POVModel.findOne({pon:PON},function(err,indb){
+			if (!indb) { // presume not found
+				savethis.save(function(err) {
+				  if (err) throw err;
+				  console.log('new POV saved successfully!');
+				  console.log(JSON.stringify(savethis));
+				});
+			} else {
+				//indb.pon = savethis.pon;
+				indb.pin = savethis.pin;
+				indb.accountno = savethis.accountno;
+				indb.zip = savethis.zip;
+				indb.subname = savethis.subname;
+				indb.telephones = savethis.telephones;
+				indb.save(function(err) {
+					if (err) throw err;
+					console.log('OLD POV re-saved successfully!');
+					console.log(JSON.stringify(indb));
+				});
+			}
 		});
 	}
 	return summary;
 };
-
 
 // var is_array = function (value) {
 // 	return Object.prototype.toString.apply(value) === '[object Array]';
@@ -129,7 +120,6 @@ http.createServer( function (request, response) {
   	});
 	request.on('end', function () {
 		response.writeHead(200, {'Content-Type': 'application/xml'});
-		// response.write(request.method + ' ' + count + '\n' );
 		if (body != '') {
 			parseString(body,function(err,result) {
 				if (result.PortOutValidationRequest) {
@@ -153,22 +143,17 @@ http.createServer( function (request, response) {
 						              '<Description>fatal error</Description>' + '\n' +
 						          '</Error>' + '\n' +
 						      '</Errors>' + '\n' +
-						  '</PortOutValidationResponse>'
-						  ' ';
+						  '</PortOutValidationResponse>';
 			});
 		} else {
 			  POVModel.find({}, function(err, records) {
 				  if (err) throw err;
-
-				  // object of all the users
+				  // dump of all the users
 				  console.log(records);
 				});
 		};
-
-		// console.log ( body +'\n' );
 		response.end( xmlOut +'\n' );
 		count = count + 1;
-		// console.log(count);
 	});
 
 }).listen(8124);
