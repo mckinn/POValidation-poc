@@ -9,6 +9,8 @@
   "author": "S.McKinnon",
   "license": "ISC",
   "dependencies": {
+    "express": "^4.13.4",
+    "js2xmlparser": "^1.0.0",
     "moment": "^2.11.1",
     "mongoose": "^4.3.7",
     "xml2js": "^0.4.16"

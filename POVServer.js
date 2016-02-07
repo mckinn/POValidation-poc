@@ -1,5 +1,8 @@
-const http = require('http');
+// const http = require('http');
+var express = require('express');
+var app = express();
 var parseString = require('xml2js').parseString;
+var js2xmlparser = require("js2xmlparser");
 var outfile = require('fs');
 var outstream = outfile.createWriteStream('data/portoutRequestLog.csv');
 var moment = require('moment');
@@ -10,21 +13,9 @@ mongoose.connect('mongodb://povalidation:subbylou@ds051625.mongolab.com:51625/po
 // this sets up a mongoose schema and model - just picking away at this.
 //
 var Schema = mongoose.Schema;
-
 // create a schema
 var POVSchema = new Schema(
-	//
-	//<PortOutValidationRequest>
-	//    <PON>some_pon</PON>
-	//    <Pin>1111</Pin>
-	//    <AccountNumber>777</AccountNumber>
-	//    <ZipCode>62025</ZipCode>
-	//    <SubscriberName>Subscriber Name</SubscriberName>
-	//    <TelephoneNumbers>
-	//        <TelephoneNumber>2223331000</TelephoneNumber>
-	//        <TelephoneNumber>2223331001</TelephoneNumber>
-	//    </TelephoneNumbers>
-	//</PortOutValidationRequest>
+
 	{
 	  pon: { type: String, required: true, unique: true },
 	  pin: String,
@@ -33,25 +24,19 @@ var POVSchema = new Schema(
 	  subname: String,
 	  telephones: [String]
 	});
-
 // create the model
 var POVModel = mongoose.model('PortOutValidation', POVSchema);
 
-// 
-//   this js code reflects the request back to the source with a 200 OK.
-//
-
 var count = 1;
 
+// set up a clean exit from console <ctrl-c>
 process.stdin.resume();
-
 process.on('SIGINT', function() {
   console.log('Closing file');
   outstream.end();
   mongoose.connection.close();
   process.exit(0);
 });
-
 
 var extractPovRequest = function(count,payload) {
 	var summary = 'x';
@@ -104,13 +89,37 @@ var extractPovRequest = function(count,payload) {
 		});
 	}
 	return summary;
-};
+	};
 
 // var is_array = function (value) {
 // 	return Object.prototype.toString.apply(value) === '[object Array]';
 // };
 
-http.createServer( function (request, response) {
+var options = {     
+    declaration: {
+        include: false
+    },
+    arrayMap: {
+        telephones: "tn"
+    }
+};
+
+app.get('/',function(request, result){
+	POVModel.find({}, function(err, records) {
+			if (err) throw err;
+			var xmlrecords = '<POVDatabase>';
+			// console.log(records);
+			for (record in records) {
+				xmlrecords = xmlrecords + js2xmlparser("POVRecord", JSON.stringify(records[record]), options);
+			};
+			xmlrecords = xmlrecords + '</POVDatabase>';
+			result.set( {'Content-Type': 'application/xml'});
+			result.send(xmlrecords);
+			result.end();
+		});
+	});
+
+app.post('/notify', function (request, response) {
 
 	var body = '';
 	var xmlOut = '';
@@ -119,7 +128,6 @@ http.createServer( function (request, response) {
     	body += chunk;
   	});
 	request.on('end', function () {
-		response.writeHead(200, {'Content-Type': 'application/xml'});
 		if (body != '') {
 			parseString(body,function(err,result) {
 				if (result.PortOutValidationRequest) {
@@ -130,35 +138,28 @@ http.createServer( function (request, response) {
 					console.log(summary);
 					outstream.write(summary + '\n');
 				}
-				// xmlOut = '<PortOutValidationResponse>' + '\n' +
-      			// 		'<Portable>true</Portable>' + '\n' + 
-				// 		'<PON>'+ PON + '</PON>' + '\n' + 
-				// 		'</PortOutValidationResponse>'
 				xmlOut =   '<PortOutValidationResponse>' + '\n' +
 						      '<Portable>false</Portable>' + '\n' +
 						      '<PON>'+ PON + '</PON>' + '\n' +
 						      '<Errors>' + '\n' +
 						          '<Error>' + '\n' +
-						              '<Code>7999</Code>' + '\n' +
-						              '<Description>fatal error</Description>' + '\n' +
+						              '<Code>7520</Code>' + '\n' +
+						              '<Description>locked by carrier</Description>' + '\n' +
 						          '</Error>' + '\n' +
 						      '</Errors>' + '\n' +
 						  '</PortOutValidationResponse>';
 			});
-		} else {
-			  POVModel.find({}, function(err, records) {
-				  if (err) throw err;
-				  // dump of all the users
-				  console.log(records);
-				});
 		};
-		response.end( xmlOut +'\n' );
+		response.set( {'Content-Type': 'application/xml'});
+		response.send( xmlOut );
+		response.end();
 		count = count + 1;
 	});
+	});
 
-}).listen(8124);
-
-console.log('Server running at http://127.0.0.1:8124/');
+app.listen(8124, function () {
+	console.log('Example app listening on port 8124!');
+	});
 
 outstream.write("index, PON, Pin, AccountNumber, ZipCode, SubscriberName, Timestamp " + '\n');
 console.log("PON, Pin, AccountNumber, ZipCode, SubscriberName, Timestamp " + '\n');
