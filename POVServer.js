@@ -104,7 +104,7 @@ var options = {
     }
 };
 
-app.get('/',function(request, result){
+app.get('/getdata',function(request, result){
 	POVModel.find({}, function(err, records) {
 			if (err) throw err;
 			var xmlrecords = '<POVDatabase>';
@@ -119,7 +119,7 @@ app.get('/',function(request, result){
 		});
 	});
 
-app.post('/notify', function (request, response) {
+app.post('/', function (request, response) {
 
 	var body = '';
 	var xmlOut = '';
@@ -129,6 +129,7 @@ app.post('/notify', function (request, response) {
   	});
 	request.on('end', function () {
 		if (body != '') {
+			// console.log("Body: "+body);
 			parseString(body,function(err,result) {
 				if (result.PortOutValidationRequest) {
 					// for use in the response
@@ -136,15 +137,15 @@ app.post('/notify', function (request, response) {
 					var PON = result.PortOutValidationRequest.PON || "invalid PON";
 					var summary = extractPovRequest(count, result.PortOutValidationRequest);
 					console.log(summary);
-					outstream.write(summary + '\n');
+					// outstream.write(summary + '\n');
 				}
 				xmlOut =   '<PortOutValidationResponse>' + '\n' +
 						      '<Portable>false</Portable>' + '\n' +
 						      '<PON>'+ PON + '</PON>' + '\n' +
 						      '<Errors>' + '\n' +
 						          '<Error>' + '\n' +
-						              '<Code>7520</Code>' + '\n' +
-						              '<Description>locked by carrier</Description>' + '\n' +
+						              '<Code>7519</Code>' + '\n' +
+						              '<Description>Custom Complaint Message</Description>' + '\n' +
 						          '</Error>' + '\n' +
 						      '</Errors>' + '\n' +
 						  '</PortOutValidationResponse>';
@@ -161,5 +162,5 @@ app.listen(8124, function () {
 	console.log('Example app listening on port 8124!');
 	});
 
-outstream.write("index, PON, Pin, AccountNumber, ZipCode, SubscriberName, Timestamp " + '\n');
-console.log("PON, Pin, AccountNumber, ZipCode, SubscriberName, Timestamp " + '\n');
+// outstream.write("index, PON, Pin, AccountNumber, ZipCode, SubscriberName, Timestamp " + '\n');
+// console.log("PON, Pin, AccountNumber, ZipCode, SubscriberName, Timestamp " + '\n');
