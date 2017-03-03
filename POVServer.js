@@ -166,7 +166,6 @@ app.post('/notification', function (request, response) {
 						codeResult = codes[PIN]; // look for a valid code
 						if (!codeResult) { // can't find the code
 							codeResult = "can't find the error code"
-							PIN = '9999'
 						} else { // found the code
 							var codeResult = codes[PIN];
 						}
