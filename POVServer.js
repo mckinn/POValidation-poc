@@ -1,6 +1,7 @@
 // const http = require('http');
 var express = require('express');
 var app = express();
+var basicAuth = require('basic-auth-connect');
 var parseString = require('xml2js').parseString;
 var js2xmlparser = require("js2xmlparser");
 var outfile = require('fs');
@@ -8,6 +9,21 @@ var outstream = outfile.createWriteStream('data/portoutRequestLog.csv');
 var moment = require('moment');
 var mongoose = require('mongoose');
 mongoose.connect('mongodb://povalidation:subbylou@ds051625.mongolab.com:51625/povalidation');
+
+var codes = {
+	'7510':	'Required Account Code missing',
+	'7511':	'Invalid Account Code',
+	'7512':	'Required PIN missing',
+	'7513':	'PIN Invalid',
+	'7514':	'Required ZIP Code missing',
+	'7515':	'Invalid ZIP Code',
+	'7516':	'Telephone Number not recognized or invalid for this account',
+	'7517':	'Too many Telephone numbers in this request',
+	'7518':	'Telephone Number Not Active',
+	'7519':	'Customer info does not match',
+	'7598':	'Invalid Request - the dashboard is not happy',
+	'7599':	'Fatal Error in Processing'
+}
 
 //
 // this sets up a mongoose schema and model - just picking away at this.
@@ -104,11 +120,13 @@ var options = {
     }
 };
 
+// Authenticator
+// app.use(basicAuth('tyler', 'tyler'));
+
 app.get('/getdata',function(request, result){
 	POVModel.find({}, function(err, records) {
 			if (err) throw err;
 			var xmlrecords = '<POVDatabase>';
-			// console.log(records);
 			for (record in records) {
 				xmlrecords = xmlrecords + js2xmlparser("POVRecord", JSON.stringify(records[record]), options);
 			};
@@ -119,7 +137,7 @@ app.get('/getdata',function(request, result){
 		});
 	});
 
-app.post('/', function (request, response) {
+app.post('/notification', function (request, response) {
 
 	var body = '';
 	var xmlOut = '';
@@ -129,34 +147,56 @@ app.post('/', function (request, response) {
   	});
 	request.on('end', function () {
 		if (body != '') {
-			// console.log("Body: "+body);
+			console.log("Body: "+body);
+			
 			parseString(body,function(err,result) {
 				if (result.PortOutValidationRequest) {
 					// for use in the response
-					// console.log(JSON.stringify(result));
+					console.log(JSON.stringify(result));
 					var PON = result.PortOutValidationRequest.PON || "invalid PON";
+					// Get a PIN for use in the response
+					var PIN = result.PortOutValidationRequest.Pin; // perhaps null
+					var Acct = result.PortOutValidationRequest.AccountNumber; // perhaps null
 					var summary = extractPovRequest(count, result.PortOutValidationRequest);
-					console.log(summary);
-					// outstream.write(summary + '\n');
+					
+					if (PIN[0] =="") { // Pin was empty
+						codeResult = "empty PIN";
+						PIN = '0000';
+					} else { // Pin has something in it
+						codeResult = codes[PIN]; // look for a valid code
+						if (!codeResult) { // can't find the code
+							codeResult = "can't find the error code"
+							PIN = '9999'
+						} else { // found the code
+							var codeResult = codes[PIN];
+						}
+					}
+
+					POVResponse = 'true';
+					if (Acct[0] =="") POVResponse = 'false';
+					xmlOut =   '<PortOutValidationResponse>' + '\n' +
+							      '<Portable>'+POVResponse+'</Portable>' + '\n' +
+							      '<PON>'+ PON + '</PON>' + '\n' +
+							      '<Errors>' + '\n' +
+							          '<Error>' + '\n' +
+							              '<Code>'+ PIN + '</Code>' + '\n' +
+							              '<Description>' + codeResult + '</Description>' + '\n' +
+							          '</Error>' + '\n' +
+							      '</Errors>' + '\n' +
+							  '</PortOutValidationResponse>';
+
 				}
-				xmlOut =   '<PortOutValidationResponse>' + '\n' +
-						      '<Portable>false</Portable>' + '\n' +
-						      '<PON>'+ PON + '</PON>' + '\n' +
-						      '<Errors>' + '\n' +
-						          '<Error>' + '\n' +
-						              '<Code>7519</Code>' + '\n' +
-						              '<Description>Custom Complaint Message</Description>' + '\n' +
-						          '</Error>' + '\n' +
-						      '</Errors>' + '\n' +
-						  '</PortOutValidationResponse>';
-			});
+			});		
 		};
+
 		response.set( {'Content-Type': 'application/xml'});
 		response.send( xmlOut );
 		response.end();
+
 		count = count + 1;
 	});
-	});
+});
+
 
 app.listen(8124, function () {
 	console.log('Example app listening on port 8124!');
