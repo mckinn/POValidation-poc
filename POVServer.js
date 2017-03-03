@@ -1,7 +1,7 @@
 // const http = require('http');
 var express = require('express');
 var app = express();
-var basicAuth = require('basic-auth-connect');
+// var basicAuth = require('basic-auth-connect');
 var parseString = require('xml2js').parseString;
 var js2xmlparser = require("js2xmlparser");
 // var outfile = require('fs');
@@ -197,9 +197,9 @@ app.post('/notification', function (request, response) {
 	});
 });
 
-
-app.listen(8124, function () {
-	console.log('Example app listening on port 8124!');
+var port = process.env.PORT || 3000;
+app.listen( port, function () {
+	console.log('Example app listening on port: ',port);
 	});
 
 // outstream.write("index, PON, Pin, AccountNumber, ZipCode, SubscriberName, Timestamp " + '\n');
