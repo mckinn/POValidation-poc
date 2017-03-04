@@ -182,9 +182,8 @@ app.post('/notification', function (request, response) {
 							              '<Code>'+ PIN + '</Code>' + '\n' +
 							              '<Description>' + codeResult + '</Description>' + '\n' +
 							          '</Error>' + '\n' +
-							      '</Errors>' + '\n'
+							      '</Errors>' + '\n';
 					}
-							     +
 					xmlOut =  xmlOut +'</PortOutValidationResponse>';
 
 				}
