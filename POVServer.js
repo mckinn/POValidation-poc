@@ -137,7 +137,7 @@ app.get('/getdata',function(request, result){
 		});
 	});
 
-app.post('/notification', function (request, response) {
+app.post('/validation', function (request, response) {
 
 	var body = '';
 	var xmlOut = '';
