@@ -158,31 +158,34 @@ app.post('/notification', function (request, response) {
 					var PIN = result.PortOutValidationRequest.Pin; // perhaps null
 					var Acct = result.PortOutValidationRequest.AccountNumber; // perhaps null
 					var summary = extractPovRequest(count, result.PortOutValidationRequest);
+					var pinMissing = false;
+					var POVResponse = 'true';  //don't be fooled.  for the XML payload below.
 					
 					if (PIN[0] =="") { // Pin was empty
-						codeResult = "empty PIN";
-						PIN = '0000';
+						pinMissing = true;
 					} else { // Pin has something in it
 						codeResult = codes[PIN]; // look for a valid code
 						if (!codeResult) { // can't find the code
 							codeResult = "can't find the error code"
-						} else { // found the code
-							var codeResult = codes[PIN];
 						}
 					}
 
-					POVResponse = 'true';
+
 					if (Acct[0] =="") POVResponse = 'false';
 					xmlOut =   '<PortOutValidationResponse>' + '\n' +
-							      '<Portable>'+POVResponse+'</Portable>' + '\n' +
-							      '<PON>'+ PON + '</PON>' + '\n' +
+							      '<Portable>'+POVResponse+'</Portable>' + '\n';
+					if (!pinMissing) {
+						xmlOut =  xmlOut + 
+								  '<PON>'+ PON + '</PON>' + '\n' +
 							      '<Errors>' + '\n' +
 							          '<Error>' + '\n' +
 							              '<Code>'+ PIN + '</Code>' + '\n' +
 							              '<Description>' + codeResult + '</Description>' + '\n' +
 							          '</Error>' + '\n' +
-							      '</Errors>' + '\n' +
-							  '</PortOutValidationResponse>';
+							      '</Errors>' + '\n'
+					}
+							     +
+					xmlOut =  xmlOut +'</PortOutValidationResponse>';
 
 				}
 			});		
