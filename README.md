@@ -28,11 +28,11 @@ The basic structure of the project will be centered on the mongodb instance, whi
 ## behavior
 
 The API will...
-* return a mock response of <Portable> == true if the <AccountNumber> information is present, and false otherwise
+* return a mock response of *Portable* == true if the <AccountNumber> information is present, and false otherwise
 * return...
- * a valid error response payload if the <Pin> equals a valid error response,
- * the submitted <Pin> itself if the <Pin> is not a valid value, and 
- * no error payload at all if the <Pin> is blank
+ * a valid error response payload if the *PIN* equals a valid error response,
+ * the submitted *PIN* itself if the *PIN* is not a valid value, and 
+ * no error payload at all if the *PIN* is blank
 
 ## project status
 
