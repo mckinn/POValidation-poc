@@ -162,7 +162,7 @@ app.post('/validation', function (request, response) {
 					var POVResponse = 'true';  //don't be fooled.  for the XML payload below.
 					
 					// try if (!PIN)
-					if (!PIN) // (PIN[0] =="") { // Pin was empty
+					if (!PIN) { // (PIN[0] =="") { // Pin was empty
 						pinMissing = true;
 					} else { // Pin has something in it
 						codeResult = codes[PIN]; // look for a valid code
