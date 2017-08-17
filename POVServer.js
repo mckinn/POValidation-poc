@@ -155,7 +155,7 @@ app.post('/validation', function (request, response) {
 					console.log(JSON.stringify(result));
 					var PON = result.PortOutValidationRequest.PON || "invalid PON";
 					// Get a PIN for use in the response
-					var PIN = result.PortOutValidationRequest.Pin;  || "";// perhaps null
+					var PIN = result.PortOutValidationRequest.Pin || "";// perhaps null
 					var Acct = result.PortOutValidationRequest.AccountNumber || ""; // perhaps null
 					var summary = extractPovRequest(count, result.PortOutValidationRequest);
 					var pinMissing = false;
