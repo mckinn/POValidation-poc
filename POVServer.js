@@ -172,7 +172,7 @@ app.post('/validation', function (request, response) {
 					}
 
 
-					if (Acct[0] =="") POVResponse = 'false';
+					if ((!Acct) || (Acct[0] =="")) POVResponse = 'false';
 					xmlOut =   '<PortOutValidationResponse>' + '\n' +
 							      '<Portable>'+POVResponse+'</Portable>' + '\n';
 					if (!pinMissing) {
